@@ -136,8 +136,16 @@ for (int i=0; i < NUM_NOTES; i++) {
           servoarr[i] = time;
           Serial.println(servoarr[i]);
           
+          if (i <= 16){
           pwm1.setPWM(i, 0, 200);
-      
+
+          }
+
+          if (i  >= 17) {
+          pwm2.setPWM(i - 16, 0, 200);
+          
+          }
+
 
          // pwm1.setPWM(servo, 0, 200);
 //         Serial.print("servo number ");
@@ -289,17 +297,29 @@ void loop(void)
     while (!SMF.isEOF())
     {
       
-      if (SMF.getNextEvent())
+      if (SMF.getNextEvent(u))
       tickMetronome();
       for (int i=0; i < NUM_NOTES; i++){
         unsigned long time = millis();
       if (servoarr[i] && time - servoarr[i] > 500){
-           Serial.println(time);
-           Serial.print("Millisconds");
+          if (i <= 16){
+            Serial.println(time);
+            Serial.print("servo1");
             pwm1.setPWM(i, 0, 125);
             Serial.println("reset");
             servoarr[i] = 0;
+          }
+
+          if(i >=17){
+            Serial.println(time);
+            Serial.print("servo2");
+            pwm2.setPWM(i - 16, 0, 125);
+            Serial.println("reset");
+            servoarr[i] = 0;
+
+           
       }
+          }
   }
     }
 
