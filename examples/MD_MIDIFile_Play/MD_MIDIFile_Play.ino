@@ -131,7 +131,45 @@ struct ServoState {
   bool isOn;
 };
 
-ServoState servoStates[NUM_NOTES];
+ServoState servoStates[NUM_NOTES] = {
+  { 0, false },
+  { 0, false },
+  { 0, false },
+  { 0, false },
+  { 0, false },
+  { 0, false },
+  { 0, false },
+  { 0, false },
+  { 0, false },
+  { 0, false },
+  { 0, false },
+  { 0, false },
+  { 0, false },
+  { 0, false },
+  { 0, false },
+  { 0, false },
+  { 0, false },
+  { 0, false },
+  { 0, false },
+  { 0, false },
+  { 0, false },
+  { 0, false },
+  { 0, false },
+  { 0, false },
+  { 0, false },
+  { 0, false },
+  { 0, false },
+  { 0, false },
+  { 0, false },
+  { 0, false },
+  { 0, false },
+  { 0, false },
+  { 0, false },
+  { 0, false },
+  { 0, false },
+  { 0, false },
+  { 0, false }
+};
 
 const char* getTune(const int i) {
   // WARNING: this assumes all filenames will be 12 characters or less (FAT16)
@@ -274,8 +312,6 @@ void midiSilence(void)
 
 void setup(void)
 {
-  memset(servoStates, 0, sizeof(servoStates));
-
   pwm1.begin();
 
   pwm1.setPWMFreq(60);  // Analog servos run at ~60 Hz updates
@@ -370,11 +406,11 @@ void loop(void)
       // play the file
       while (!SMF.isEOF())
       {
-        unsigned long time = millis();
-
         if (SMF.getNextEvent()) {
           tickMetronome();
         }
+
+        unsigned long time = millis();
 
         for (int i = 0; i < NUM_NOTES; i++) {
           ServoState servoState = servoStates[i];
