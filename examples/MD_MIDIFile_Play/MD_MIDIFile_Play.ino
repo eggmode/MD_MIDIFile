@@ -61,7 +61,6 @@ Adafruit_PWMServoDriver pwm2 = Adafruit_PWMServoDriver(&Wire, 0x41);
 
 #define WAIT_DELAY    2000 // ms
 #define SERVO_RECOVERY_DELAY 500 // ms
-#define MAX_NOTE_ON_TIME 5000 // ms
 
 #define ARRAY_SIZE(a) (sizeof(a)/sizeof(a[0]))
 
@@ -127,8 +126,12 @@ const uint8_t pentatonic[NUM_NOTES] PROGMEM = {21, 24, 26, 28, 31, 33, 36, 38, 4
 
 #define GET_PENTATONIC(i) ((const uint8_t) pgm_read_byte(&(pentatonic[i])))
 
-unsigned long servoOnTime[NUM_NOTES] = {0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0};
-unsigned long servoOffTime[NUM_NOTES] = {0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0};
+struct ServoState {
+  unsigned long moveTime;
+  bool isOn;
+};
+
+ServoState servoStates[NUM_NOTES];
 
 const char* getTune(const int i) {
   // WARNING: this assumes all filenames will be 12 characters or less (FAT16)
@@ -136,6 +139,22 @@ const char* getTune(const int i) {
 
   strncpy_P(tune, (const char *) pgm_read_word(&(tuneList[i])), 13);
   return tune;
+}
+
+void turnNoteOff(const int i) {
+  if (i <= 16) {
+    DEBUG(F(" servo1 "));
+    pwm1.setPWM(i, 0, 125);
+    DEBUGLN(F(" reset"));
+  }
+  else {
+    DEBUG(F(" servo2 "));
+    pwm2.setPWM(i - 16, 0, 125);
+    DEBUGLN(F(" reset"));
+  }
+
+  servoStates[i].moveTime = 0;
+  servoStates[i].isOn = false;
 }
 
 void midiCallback(midi_event *pev)
@@ -172,7 +191,7 @@ void midiCallback(midi_event *pev)
     for (int i = 0; i < NUM_NOTES; i++) {
       if (pev->data[1] == GET_PENTATONIC(i))
       {
-        servoOffTime[i] = time + SERVO_RECOVERY_DELAY;
+        servoStates[i].moveTime = time + SERVO_RECOVERY_DELAY;
         DEBUG(i);
         DEBUG(F(" off at "));
         DEBUGLN(time + SERVO_RECOVERY_DELAY);
@@ -186,17 +205,14 @@ void midiCallback(midi_event *pev)
     for (int i = 0; i < NUM_NOTES; i++) {
       if (pev->data[1] == GET_PENTATONIC(i))
       {
-        unsigned long curServoOnTime = servoOnTime[i];
-        unsigned long curServoOffTime = servoOffTime[i];
+        ServoState servoState = servoStates[i];
 
         // If the servo is already switched on, turn it off right away so it has time to recover
-        if (curServoOnTime && (curServoOffTime < curServoOnTime || curServoOffTime > time)) {
-          servoOffTime[i] = time;
-          DEBUG(i);
-          DEBUG(F(" off early at "));
+        if (servoState.isOn) {
           DEBUGLN(time);
+          turnNoteOff(i);
         }
-        servoOnTime[i] = time + SERVO_RECOVERY_DELAY;
+        servoState.moveTime = time + SERVO_RECOVERY_DELAY;
         DEBUG(i);
         DEBUG(F(" on at "));
         DEBUGLN(time + SERVO_RECOVERY_DELAY);
@@ -256,6 +272,8 @@ void midiSilence(void)
 
 void setup(void)
 {
+  memset(servoStates, 0, ARRAY_SIZE(servoStates));
+
   pwm1.begin();
 
   pwm1.setPWMFreq(60);  // Analog servos run at ~60 Hz updates
@@ -356,35 +374,29 @@ void loop(void)
         unsigned long time = millis();
 
         for (int i = 0; i < NUM_NOTES; i++) {
-          if (servoOnTime[i] && time >= servoOnTime[i] && servoOnTime[i] > servoOffTime[i]) {
-            if (i <= 16) {
-              DEBUGLN(time);
-              DEBUG(F(" servo1 "));
-              pwm1.setPWM(i, 0, 200);
-              DEBUGLN(F(" on"));
-            }
-            else {
-              DEBUGLN(time);
-              DEBUG(F(" servo2 "));
-              pwm2.setPWM(i - 16, 0, 200);
-              DEBUGLN(F(" on"));
-            }
+          ServoState servoState = servoStates[i];
 
-            // Set the servo off time to the future so we know the note is currently on
-            servoOffTime[i] = servoOnTime[i] + MAX_NOTE_ON_TIME;
-          }
-          else if (servoOffTime[i] && time >= servoOffTime[i] && servoOffTime[i] > servoOnTime[i]) {
-            if (i <= 16) {
-              DEBUGLN(time);
-              DEBUG(F(" servo1 "));
-              pwm1.setPWM(i, 0, 125);
-              DEBUGLN(F(" reset"));
+          if (servoState.moveTime && time >= servoState.moveTime) {
+            if (!servoState.isOn) {
+              if (i <= 16) {
+                DEBUGLN(time);
+                DEBUG(F(" servo1 "));
+                pwm1.setPWM(i, 0, 200);
+                DEBUGLN(F(" on"));
+              }
+              else {
+                DEBUGLN(time);
+                DEBUG(F(" servo2 "));
+                pwm2.setPWM(i - 16, 0, 200);
+                DEBUGLN(F(" on"));
+              }
+
+              servoState.moveTime = 0;
+              servoState.isOn = true;
             }
             else {
               DEBUGLN(time);
-              DEBUG(F(" servo2 "));
-              pwm2.setPWM(i - 16, 0, 125);
-              DEBUGLN(F(" reset"));
+              turnNoteOff(i);
             }
           }
         }
