@@ -412,6 +412,9 @@ void loop(void)
 
         unsigned long time = millis();
 
+        DEBUG(F("loop time "));
+        DEBUGLN(time);
+
         for (int i = 0; i < NUM_NOTES; i++) {
           ServoState servoState = servoStates[i];
 
