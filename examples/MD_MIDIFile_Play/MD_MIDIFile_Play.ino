@@ -64,60 +64,8 @@ Adafruit_PWMServoDriver pwm2 = Adafruit_PWMServoDriver(&Wire, 0x41);
 
 #define ARRAY_SIZE(a) (sizeof(a)/sizeof(a[0]))
 
-// The files in the tune list should be located on the SD card 
-// or an error will occur opening the file and the next in the 
-// list will be opened (skips errors).
-const char tuneTest[] PROGMEM = "TEST5.MID";
-// const char tuneLoopDemo[] PROGMEM = "LOOPDEMO.MID";  // simplest and shortest file
-// const char tuneElsie[] PROGMEM = "ELISE.MID";
-// const char tuneTwinkle[] PROGMEM = "TWINKLE.MID";
-// const char tuneGangnam[] PROGMEM = "GANGNAM.MID";
-// const char tuneFugueGM[] PROGMEM = "FUGUEGM.MID";
-// const char tunePopcorn[] PROGMEM = "POPCORN.MID";
-// const char tuneAir[] PROGMEM = "AIR.MID";
-// const char tunePRDancer[] PROGMEM = "PRDANCER.MID";
-// const char tuneMinuet[] PROGMEM = "MINUET.MID";
-// const char tuneFireRain[] PROGMEM = "FIRERAIN.MID";
-// const char tuneMozart[] PROGMEM = "MOZART.MID";
-// const char tuneFernando[] PROGMEM = "FERNANDO.MID";
-// const char tuneSonatac[] PROGMEM = "SONATAC.MID";
-// const char tuneSkyfall[] PROGMEM = "SKYFALL.MID";
-// const char tuneXmas[] PROGMEM = "XMAS.MID";
-// const char tuneGBrown[] PROGMEM = "GBROWN.MID";
-// const char tuneProwler[] PROGMEM = "PROWLER.MID";
-// const char tuneIpanema[] PROGMEM = "IPANEMA.MID";
-// const char tuneJZBumble[] PROGMEM = "JZBUMBLE.MID";
-
-const char *const tuneList[] PROGMEM =
-{
-  tuneTest,
-  // tuneLoopDemo,
-  // tuneElsie,
-  // tuneTwinkle,
-  // tuneGangnam,
-  // tuneFugueGM,
-  // tunePopcorn,
-  // tuneAir,
-  // tunePRDancer,
-  // tuneMinuet,
-  // tuneFireRain,
-  // tuneMozart,
-  // tuneFernando,
-  // tuneSonatac,
-  // tuneSkyfall,
-  // tuneXmas,
-  // tuneGBrown,
-  // tuneProwler,
-  // tuneIpanema,
-  // tuneJZBumble
-};
-
-const int tuneListSize = ARRAY_SIZE(tuneList);
-
-// These don't play as they need more than 16 tracks but will run if MIDIFile.h is changed
-//#define MIDI_FILE  "SYMPH9.MID"		// 29 tracks
-//#define MIDI_FILE  "CHATCHOO.MID"		// 17 tracks
-//#define MIDI_FILE  "STRIPPER.MID"		// 25 tracks
+// The files in the tune list should be located on the SD card with filenames 1.MID, 2.MID, etc.
+int songNum = 1;
 
 SdFat	SD;
 MD_MIDIFile SMF;
@@ -133,12 +81,12 @@ struct ServoState {
 
 ServoState servoStates[NUM_NOTES];
 
-const char* getTune(const int i) {
-  // WARNING: this assumes all filenames will be 12 characters or less (FAT16)
-  static char tune[13];
+const char* getMidiFileName(const int i) {
+  static char buffer[8];
 
-  strncpy_P(tune, (const char *) pgm_read_word(&(tuneList[i])), 13);
-  return tune;
+  // Ensure it isn't more than 3 characters
+  sprintf(buffer, "%d.MID", i % 1000);
+  return buffer;
 }
 
 void turnNoteOff(const int i) {
@@ -375,52 +323,56 @@ void applyServoStates() {
 void loop(void)
 {
   int err;
-  
-  for (uint8_t i=0; i<tuneListSize; i++)
+
+  // reset LEDs
+  digitalWrite(READY_LED, LOW);
+  digitalWrite(SD_ERROR_LED, LOW);
+
+  // Get the next file name and play it
+  DEBUG(F("\nFile: "));
+  DEBUG(getMidiFileName(songNum));
+  SMF.setFilename(getMidiFileName(songNum));
+  err = SMF.load();
+
+  if (err != -1)
   {
-    // reset LEDs
-    digitalWrite(READY_LED, LOW);
-    digitalWrite(SD_ERROR_LED, LOW);
+    DEBUG(F("\nSMF load Error "));
+    DEBUG(err);
+    digitalWrite(SMF_ERROR_LED, HIGH);
+    delay(WAIT_DELAY);
 
-    // use the next file name and play it
-    DEBUG(F("\nFile: "));
-    DEBUG(getTune(i));
-    SMF.setFilename(getTune(i));
-    err = SMF.load();
-    if (err != -1)
+    // Back to the beginning!
+    songNum = 1;
+  }
+  else
+  {
+    // play the file
+    while (!SMF.isEOF())
     {
-      DEBUG(F("\nSMF load Error "));
-      DEBUG(err);
-      digitalWrite(SMF_ERROR_LED, HIGH);
-      delay(WAIT_DELAY);
-    }
-    else
-    {
-      // play the file
-      while (!SMF.isEOF())
-      {
-        if (SMF.getNextEvent()) {
-          tickMetronome();
-        }
-
-        applyServoStates();
+      if (SMF.getNextEvent()) {
+        tickMetronome();
       }
 
-      // done with this one
-      SMF.close();
-      midiSilence();
-
-      unsigned long songEndTime = millis();
-
-      // Everything is delayed, make sure we finish all the notes
-      while (millis() - SERVO_RECOVERY_DELAY <= songEndTime) {
-        applyServoStates();
-      }
-
-      // signal finish LED with a dignified pause
-      digitalWrite(READY_LED, HIGH);
-      delay(WAIT_DELAY);
+      applyServoStates();
     }
+
+    // done with this one
+    SMF.close();
+    midiSilence();
+
+    unsigned long songEndTime = millis();
+
+    // Everything is delayed, make sure we finish all the notes
+    while (millis() - SERVO_RECOVERY_DELAY <= songEndTime) {
+      applyServoStates();
+    }
+
+    // signal finish LED with a dignified pause
+    digitalWrite(READY_LED, HIGH);
+    delay(WAIT_DELAY);
+
+    // Next song.
+    songNum++;
   }
 }
 
