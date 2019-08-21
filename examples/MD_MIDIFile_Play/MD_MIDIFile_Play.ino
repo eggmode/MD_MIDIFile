@@ -202,7 +202,7 @@ void midiCallback(midi_event *pev)
     unsigned long time = millis();
     int i = 0;
 
-    while (i < NUM_NOTES && pev->data[1] < GET_PENTATONIC(i)) {
+    while (i < NUM_NOTES && pev->data[1] > GET_PENTATONIC(i)) {
       i++;
     }
     if (servoStates[i].isOn) {
@@ -217,7 +217,7 @@ void midiCallback(midi_event *pev)
     unsigned long time = millis();
     int i = 0;
 
-    while (i < NUM_NOTES && pev->data[1] < GET_PENTATONIC(i)) {
+    while (i < NUM_NOTES && pev->data[1] > GET_PENTATONIC(i)) {
       i++;
     }
 
