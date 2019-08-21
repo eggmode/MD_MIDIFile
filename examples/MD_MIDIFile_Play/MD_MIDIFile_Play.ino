@@ -147,10 +147,10 @@ void turnNoteOff(const int i) {
   DEBUGLN(F(" off"));
 
   if (i <= 16) {
-    pwm1.setPWM(i, 0, 125);
+    pwm1.setPWM(i, 0, 200);
   }
   else {
-    pwm2.setPWM(i - 16, 0, 125);
+    pwm2.setPWM(i - 16, 0, 200);
   }
 
   servoStates[i].moveTime = 0;
@@ -355,10 +355,10 @@ void applyServoStates() {
         DEBUGLN(F(" on"));
 
         if (i <= 16) {
-          pwm1.setPWM(i, 0, 200);
+          pwm1.setPWM(i, 0, 125);
         }
         else {
-          pwm2.setPWM(i - 16, 0, 200);
+          pwm2.setPWM(i - 16, 0, 125);
         }
 
         servoState.moveTime = 0;
