@@ -191,10 +191,12 @@ void midiCallback(midi_event *pev)
     for (int i = 0; i < NUM_NOTES; i++) {
       if (pev->data[1] == GET_PENTATONIC(i))
       {
-        servoStates[i].moveTime = time + SERVO_RECOVERY_DELAY;
-        DEBUG(i);
-        DEBUG(F(" off at "));
-        DEBUGLN(time + SERVO_RECOVERY_DELAY);
+        if (servoStates[i].isOn) {
+          servoStates[i].moveTime = time + SERVO_RECOVERY_DELAY;
+          DEBUG(i);
+          DEBUG(F(" off at "));
+          DEBUGLN(time + SERVO_RECOVERY_DELAY);
+        }
         break;
       }
     }
@@ -365,18 +367,24 @@ void loop(void)
     }
     else
     {
-      // play the file
-      while (!SMF.isEOF())
-      {
-        if (SMF.getNextEvent())
-          tickMetronome();
+      unsigned long songEndTime = -1UL;
 
+      // play the file
+      while (!SMF.isEOF() || millis() - SERVO_RECOVERY_DELAY <= songEndTime)
+      {
         unsigned long time = millis();
+
+        if (!SMF.isEOF() && SMF.getNextEvent()) {
+          tickMetronome();
+        }
+        else if (SMF.isEOF() && songEndTime == -1UL) {
+          songEndTime = time;
+        }
 
         for (int i = 0; i < NUM_NOTES; i++) {
           ServoState servoState = servoStates[i];
 
-          if (servoState.moveTime && time >= servoState.moveTime) {
+          if (servoState.moveTime > 0 && time >= servoState.moveTime) {
             if (!servoState.isOn) {
               DEBUGLN(time);
               DEBUG(F("servo "));
