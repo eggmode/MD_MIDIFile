@@ -64,7 +64,7 @@ Adafruit_PWMServoDriver pwm2 = Adafruit_PWMServoDriver(&Wire, 0x41);
 // The files in the tune list should be located on the SD card 
 // or an error will occur opening the file and the next in the 
 // list will be opened (skips errors).
-const char tuneTest4[] PROGMEM = "TEST4.MID";
+const char tuneTest[] PROGMEM = "TEST5.MID";
 // const char tuneLoopDemo[] PROGMEM = "LOOPDEMO.MID";  // simplest and shortest file
 // const char tuneElsie[] PROGMEM = "ELISE.MID";
 // const char tuneTwinkle[] PROGMEM = "TWINKLE.MID";
@@ -87,7 +87,7 @@ const char tuneTest4[] PROGMEM = "TEST4.MID";
 
 const char *const tuneList[] PROGMEM =
 {
-  tuneTest4,
+  tuneTest,
   // tuneLoopDemo,
   // tuneElsie,
   // tuneTwinkle,
