@@ -247,12 +247,12 @@ void setup(void)
 
   Serial.begin(SERIAL_RATE);
 
-  DEBUG("\n[MidiFile Play List]");
+  DEBUG(F("\n[MidiFile Play List]"));
 
   // Initialize SD
   if (!SD.begin(SD_SELECT, SPI_FULL_SPEED))
   {
-    DEBUG("\nSD init fail!");
+    DEBUG(F("\nSD init fail!"));
     digitalWrite(SD_ERROR_LED, HIGH);
     while (true);
   }
@@ -303,13 +303,13 @@ void loop(void)
     digitalWrite(SD_ERROR_LED, LOW);
 
     // use the next file name and play it
-    DEBUG("\nFile: ");
+    DEBUG(F("\nFile: "));
     DEBUG(tuneList[i]);
     SMF.setFilename(tuneList[i]);
     err = SMF.load();
     if (err != -1)
     {
-      DEBUG("\nSMF load Error ");
+      DEBUG(F("\nSMF load Error "));
       DEBUG(err);
       digitalWrite(SMF_ERROR_LED, HIGH);
       delay(WAIT_DELAY);
@@ -326,17 +326,17 @@ void loop(void)
           if (servoarr[i] && time - servoarr[i] > 500) {
             if (i <= 16) {
               Serial.println(time);
-              Serial.print("servo1");
+              Serial.print(F("servo1"));
               pwm1.setPWM(i, 0, 125);
-              Serial.println("reset");
+              Serial.println(F("reset"));
               servoarr[i] = 0;
             }
 
             if (i >=17) {
               Serial.println(time);
-              Serial.print("servo2");
+              Serial.print(F("servo2"));
               pwm2.setPWM(i - 16, 0, 125);
-              Serial.println("reset");
+              Serial.println(F("reset"));
               servoarr[i] = 0;
             }
           }
