@@ -273,8 +273,6 @@ void midiSilence(void)
 
 void setup(void)
 {
-  memset(servoStates, 0, sizeof(servoStates));
-
   pwm1.begin();
 
   pwm1.setPWMFreq(60);  // Analog servos run at ~60 Hz updates
@@ -284,10 +282,6 @@ void setup(void)
 
   pwm2.setPWMFreq(60);  // Analog servos run at ~60 Hz updates
 
-//
-//for (int i = 0; i < 11; i++) {
-//    pwm1.setPWM(i, 0, 125);
-//}m
   // Set up LED pins
   pinMode(READY_LED, OUTPUT);
   pinMode(SD_ERROR_LED, OUTPUT);
@@ -296,6 +290,11 @@ void setup(void)
 #if USE_DEBUG || USE_MIDI
   Serial.begin(SERIAL_RATE);
 #endif
+
+  // Reset all the servos to off
+  for (int i = 0; i < NUM_NOTES; i++) {
+    turnNoteOff(i);
+  }
 
   DEBUG(F("\n[MidiFile Play List]"));
 
