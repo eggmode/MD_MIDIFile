@@ -142,15 +142,15 @@ const char* getTune(const int i) {
 }
 
 void turnNoteOff(const int i) {
+  DEBUG(F("servo "));
+  DEBUG(i);
+  DEBUGLN(F(" off"));
+
   if (i <= 16) {
-    DEBUG(F(" servo1 "));
     pwm1.setPWM(i, 0, 125);
-    DEBUGLN(F(" reset"));
   }
   else {
-    DEBUG(F(" servo2 "));
     pwm2.setPWM(i - 16, 0, 125);
-    DEBUGLN(F(" reset"));
   }
 
   servoStates[i].moveTime = 0;
@@ -378,17 +378,16 @@ void loop(void)
 
           if (servoState.moveTime && time >= servoState.moveTime) {
             if (!servoState.isOn) {
+              DEBUGLN(time);
+              DEBUG(F("servo "));
+              DEBUG(i);
+              DEBUGLN(F(" on"));
+
               if (i <= 16) {
-                DEBUGLN(time);
-                DEBUG(F(" servo1 "));
                 pwm1.setPWM(i, 0, 200);
-                DEBUGLN(F(" on"));
               }
               else {
-                DEBUGLN(time);
-                DEBUG(F(" servo2 "));
                 pwm2.setPWM(i - 16, 0, 200);
-                DEBUGLN(F(" on"));
               }
 
               servoState.moveTime = 0;
