@@ -367,18 +367,13 @@ void loop(void)
     }
     else
     {
-      unsigned long songEndTime = -1UL;
-
       // play the file
-      while (!SMF.isEOF() || millis() - SERVO_RECOVERY_DELAY <= songEndTime)
+      while (!SMF.isEOF())
       {
         unsigned long time = millis();
 
-        if (!SMF.isEOF() && SMF.getNextEvent()) {
+        if (SMF.getNextEvent()) {
           tickMetronome();
-        }
-        else if (SMF.isEOF() && songEndTime == -1UL) {
-          songEndTime = time;
         }
 
         for (int i = 0; i < NUM_NOTES; i++) {
