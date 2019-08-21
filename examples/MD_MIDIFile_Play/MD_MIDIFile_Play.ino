@@ -111,8 +111,6 @@ const char *const tuneList[] PROGMEM =
 
 const int tuneListSize = ARRAY_SIZE(tuneList);
 
-#define GET_TUNE(i) ((const char *) pgm_read_word(&(tuneList[i])))
-
 // These don't play as they need more than 16 tracks but will run if MIDIFile.h is changed
 //#define MIDI_FILE  "SYMPH9.MID"		// 29 tracks
 //#define MIDI_FILE  "CHATCHOO.MID"		// 17 tracks
@@ -127,6 +125,13 @@ const uint8_t pentatonic[NUM_NOTES] PROGMEM = {21, 24, 26, 28, 31, 33, 36, 38, 4
 
 unsigned long servoarr[NUM_NOTES] = {0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0};
 
+const char* getTune(const int i) {
+  // WARNING: this assumes all filenames will be 12 characters or less (FAT16)
+  static char tune[13];
+
+  strncpy_P(tune, (const char *) pgm_read_word(&(tuneList[i])), 13);
+  return tune;
+}
 
 void midiCallback(midi_event *pev)
 // Called by the MIDIFile library when a file event needs to be processed
@@ -309,8 +314,8 @@ void loop(void)
 
     // use the next file name and play it
     DEBUG(F("\nFile: "));
-    DEBUG(GET_TUNE(i));
-    SMF.setFilename(GET_TUNE(i));
+    DEBUG(getTune(i));
+    SMF.setFilename(getTune(i));
     err = SMF.load();
     if (err != -1)
     {
