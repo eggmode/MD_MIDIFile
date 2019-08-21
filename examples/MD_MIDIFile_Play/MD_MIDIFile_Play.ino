@@ -131,45 +131,7 @@ struct ServoState {
   bool isOn;
 };
 
-ServoState servoStates[NUM_NOTES] = {
-  { 0, false },
-  { 0, false },
-  { 0, false },
-  { 0, false },
-  { 0, false },
-  { 0, false },
-  { 0, false },
-  { 0, false },
-  { 0, false },
-  { 0, false },
-  { 0, false },
-  { 0, false },
-  { 0, false },
-  { 0, false },
-  { 0, false },
-  { 0, false },
-  { 0, false },
-  { 0, false },
-  { 0, false },
-  { 0, false },
-  { 0, false },
-  { 0, false },
-  { 0, false },
-  { 0, false },
-  { 0, false },
-  { 0, false },
-  { 0, false },
-  { 0, false },
-  { 0, false },
-  { 0, false },
-  { 0, false },
-  { 0, false },
-  { 0, false },
-  { 0, false },
-  { 0, false },
-  { 0, false },
-  { 0, false }
-};
+ServoState servoStates[NUM_NOTES];
 
 const char* getTune(const int i) {
   // WARNING: this assumes all filenames will be 12 characters or less (FAT16)
@@ -245,7 +207,7 @@ void midiCallback(midi_event *pev)
     for (int i = 0; i < NUM_NOTES; i++) {
       if (pev->data[1] == GET_PENTATONIC(i))
       {
-        ServoState servoState = servoStates[i];
+        ServoState& servoState = servoStates[i];
 
         // If the servo is already switched on, turn it off right away so it has time to recover
         if (servoState.isOn) {
@@ -312,6 +274,8 @@ void midiSilence(void)
 
 void setup(void)
 {
+  memset(servoStates, 0, sizeof(servoStates));
+
   pwm1.begin();
 
   pwm1.setPWMFreq(60);  // Analog servos run at ~60 Hz updates
@@ -416,7 +380,7 @@ void loop(void)
         DEBUGLN(time);
 
         for (int i = 0; i < NUM_NOTES; i++) {
-          ServoState servoState = servoStates[i];
+          ServoState& servoState = servoStates[i];
 
           if (servoState.moveTime > 0 && time >= servoState.moveTime) {
             if (!servoState.isOn) {
