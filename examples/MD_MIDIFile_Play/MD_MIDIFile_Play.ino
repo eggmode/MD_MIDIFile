@@ -272,7 +272,7 @@ void midiSilence(void)
 
 void setup(void)
 {
-  memset(servoStates, 0, sizeof(servoStates) * sizeof(ServoState));
+  memset(servoStates, 0, sizeof(servoStates));
 
   pwm1.begin();
 
