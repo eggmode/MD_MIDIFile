@@ -15,6 +15,7 @@
 
 #define USE_MIDI  0
 #define USE_SERVO 1
+#define USE_DEBUG 1
 
 
 #if USE_SERVO
@@ -29,7 +30,7 @@ Adafruit_PWMServoDriver pwm2 = Adafruit_PWMServoDriver(&Wire, 0x41);
 #endif
 
 
-#if USE_MIDI // set up for direct MIDI serial output
+#if USE_MIDI || !USE_DEBUG // set up for direct MIDI serial output
 
 #define DEBUG(x)
 #define DEBUGX(x)
@@ -39,6 +40,7 @@ Adafruit_PWMServoDriver pwm2 = Adafruit_PWMServoDriver(&Wire, 0x41);
 
 #define DEBUG(x)  Serial.print(x)
 #define DEBUGX(x) Serial.print(x, HEX)
+#define DEBUGLN(x) Serial.println(x)
 #define SERIAL_RATE 57600
 
 #endif // USE_MIDI
@@ -58,6 +60,8 @@ Adafruit_PWMServoDriver pwm2 = Adafruit_PWMServoDriver(&Wire, 0x41);
 #define BEAT_LED      6 // toggles to the 'beat'
 
 #define WAIT_DELAY    2000 // ms
+#define SERVO_RECOVERY_DELAY 500 // ms
+#define MAX_NOTE_ON_TIME 5000 // ms
 
 #define ARRAY_SIZE(a) (sizeof(a)/sizeof(a[0]))
 
@@ -120,7 +124,8 @@ SdFat	SD;
 MD_MIDIFile SMF;
 
 const uint8_t pentatonic[NUM_NOTES] PROGMEM = {21, 24, 26, 28, 31, 33, 36, 38, 40, 43, 45, 48, 50, 52, 55, 57, 60, 62, 64, 67, 69, 72, 74, 76, 79, 81, 84, 86, 88, 91, 93, 96, 98, 100, 103, 105, 108};
-unsigned long servoarr[NUM_NOTES] = {0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0};
+unsigned long servoOnTime[NUM_NOTES] = {0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0};
+unsigned long servoOffTime[NUM_NOTES] = {0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0};
 
 
 void midiCallback(midi_event *pev)
@@ -151,38 +156,52 @@ void midiCallback(midi_event *pev)
 //  }
 
 
-  if (pev->data[0] == 144)
+  if (pev->data[0] == 128)
   {
-    for (int i=0; i < NUM_NOTES; i++) {
+    unsigned long time = millis();
+    for (int i = 0; i < NUM_NOTES; i++) {
       if (pev->data[1] == pentatonic[i])
       {
-        unsigned long time = millis();
-        servoarr[i] = time;
-        Serial.println(servoarr[i]);
-        
-        if (i <= 16) {
-          pwm1.setPWM(i, 0, 200);
+        servoOffTime[i] = time + SERVO_RECOVERY_DELAY;
+        DEBUG(i);
+        DEBUG(F(" off at "));
+        DEBUGLN(time + SERVO_RECOVERY_DELAY);
+        break;
+      }
+    }
+  }
+  else if (pev->data[0] == 144)
+  {
+    unsigned long time = millis();
+    for (int i = 0; i < NUM_NOTES; i++) {
+      if (pev->data[1] == pentatonic[i])
+      {
+        unsigned long curServoOnTime = servoOnTime[i];
+        unsigned long curServoOffTime = servoOffTime[i];
 
+        // If the servo is already switched on, turn it off right away so it has time to recover
+        if (curServoOnTime && (curServoOffTime < curServoOnTime || curServoOffTime > time)) {
+          servoOffTime[i] = time;
+          DEBUG(i);
+          DEBUG(F(" off early at "));
+          DEBUGLN(time);
         }
-
-        if (i  >= 17) {
-          pwm2.setPWM(i - 16, 0, 200);
-        }
-
-
+        servoOnTime[i] = time + SERVO_RECOVERY_DELAY;
+        DEBUG(i);
+        DEBUG(F(" on at "));
+        DEBUGLN(time + SERVO_RECOVERY_DELAY);
+        break;
          // pwm1.setPWM(servo, 0, 200);
-//         Serial.print("servo number ");
-//         Serial.print(i);
-//         Serial.print("\n");
-//    Serial.println(pev->data[0]);
-//    Serial.println(pev->data[1]);
-//    Serial.println(pev->data[2]);
-//    Serial.println(pev->data[3]);
-//    Serial.println(pev->data[4]);
-//    Serial.print("\n");
-    
-        }
-
+//         DEBUG("servo number ");
+//         DEBUG(i);
+//         DEBUG("\n");
+//    DEBUGLN(pev->data[0]);
+//    DEBUGLN(pev->data[1]);
+//    DEBUGLN(pev->data[2]);
+//    DEBUGLN(pev->data[3]);
+//    DEBUGLN(pev->data[4]);
+//    DEBUG("\n");
+      }
     }
   }
 }
@@ -245,7 +264,9 @@ void setup(void)
   pinMode(SD_ERROR_LED, OUTPUT);
   pinMode(SMF_ERROR_LED, OUTPUT);
 
+#if USE_DEBUG || USE_MIDI
   Serial.begin(SERIAL_RATE);
+#endif
 
   DEBUG(F("\n[MidiFile Play List]"));
 
@@ -321,23 +342,39 @@ void loop(void)
       {
         if (SMF.getNextEvent())
           tickMetronome();
-        for (int i=0; i < NUM_NOTES; i++) {
-          unsigned long time = millis();
-          if (servoarr[i] && time - servoarr[i] > 500) {
+
+        unsigned long time = millis();
+
+        for (int i = 0; i < NUM_NOTES; i++) {
+          if (servoOnTime[i] && time >= servoOnTime[i] && servoOnTime[i] > servoOffTime[i]) {
             if (i <= 16) {
-              Serial.println(time);
-              Serial.print(F("servo1"));
-              pwm1.setPWM(i, 0, 125);
-              Serial.println(F("reset"));
-              servoarr[i] = 0;
+              DEBUGLN(time);
+              DEBUG(F(" servo1 "));
+              pwm1.setPWM(i, 0, 200);
+              DEBUGLN(F(" on"));
+            }
+            else {
+              DEBUGLN(time);
+              DEBUG(F(" servo2 "));
+              pwm2.setPWM(i - 16, 0, 200);
+              DEBUGLN(F(" on"));
             }
 
-            if (i >=17) {
-              Serial.println(time);
-              Serial.print(F("servo2"));
+            // Set the servo off time to the future so we know the note is currently on
+            servoOffTime[i] = servoOnTime[i] + MAX_NOTE_ON_TIME;
+          }
+          else if (servoOffTime[i] && time >= servoOffTime[i] && servoOffTime[i] > servoOnTime[i]) {
+            if (i <= 16) {
+              DEBUGLN(time);
+              DEBUG(F(" servo1 "));
+              pwm1.setPWM(i, 0, 125);
+              DEBUGLN(F(" reset"));
+            }
+            else {
+              DEBUGLN(time);
+              DEBUG(F(" servo2 "));
               pwm2.setPWM(i - 16, 0, 125);
-              Serial.println(F("reset"));
-              servoarr[i] = 0;
+              DEBUGLN(F(" reset"));
             }
           }
         }
