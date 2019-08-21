@@ -64,28 +64,52 @@ Adafruit_PWMServoDriver pwm2 = Adafruit_PWMServoDriver(&Wire, 0x41);
 // The files in the tune list should be located on the SD card 
 // or an error will occur opening the file and the next in the 
 // list will be opened (skips errors).
-char *tuneList[] = 
+const char tuneTest4[] PROGMEM = "TEST4.MID";
+// const char tuneLoopDemo[] PROGMEM = "LOOPDEMO.MID";  // simplest and shortest file
+// const char tuneElsie[] PROGMEM = "ELISE.MID";
+// const char tuneTwinkle[] PROGMEM = "TWINKLE.MID";
+// const char tuneGangnam[] PROGMEM = "GANGNAM.MID";
+// const char tuneFugueGM[] PROGMEM = "FUGUEGM.MID";
+// const char tunePopcorn[] PROGMEM = "POPCORN.MID";
+// const char tuneAir[] PROGMEM = "AIR.MID";
+// const char tunePRDancer[] PROGMEM = "PRDANCER.MID";
+// const char tuneMinuet[] PROGMEM = "MINUET.MID";
+// const char tuneFireRain[] PROGMEM = "FIRERAIN.MID";
+// const char tuneMozart[] PROGMEM = "MOZART.MID";
+// const char tuneFernando[] PROGMEM = "FERNANDO.MID";
+// const char tuneSonatac[] PROGMEM = "SONATAC.MID";
+// const char tuneSkyfall[] PROGMEM = "SKYFALL.MID";
+// const char tuneXmas[] PROGMEM = "XMAS.MID";
+// const char tuneGBrown[] PROGMEM = "GBROWN.MID";
+// const char tuneProwler[] PROGMEM = "PROWLER.MID";
+// const char tuneIpanema[] PROGMEM = "IPANEMA.MID";
+// const char tuneJZBumble[] PROGMEM = "JZBUMBLE.MID";
+
+const char *const tuneList[] PROGMEM =
 {
-  "TEST4.MID",
-//  "LOOPDEMO.MID",  // simplest and shortest file
-//  "TWINKLE.MID",
-//  "GANGNAM.MID",
-//  "FUGUEGM.MID",
-//  "POPCORN.MID",
-//  "AIR.MID",
-//  "PRDANCER.MID",
-//  "MINUET.MID",
-//  "FIRERAIN.MID",
-//  "MOZART.MID",
-//  "FERNANDO.MID",
-//  "SONATAC.MID",
-//  "SKYFALL.MID",
-//  "XMAS.MID",
-//  "GBROWN.MID",
-//  "PROWLER.MID",
-//  "IPANEMA.MID",
-//  "JZBUMBLE.MID",
+  tuneTest4,
+  // tuneLoopDemo,
+  // tuneElsie,
+  // tuneTwinkle,
+  // tuneGangnam,
+  // tuneFugueGM,
+  // tunePopcorn,
+  // tuneAir,
+  // tunePRDancer,
+  // tuneMinuet,
+  // tuneFireRain,
+  // tuneMozart,
+  // tuneFernando,
+  // tuneSonatac,
+  // tuneSkyfall,
+  // tuneXmas,
+  // tuneGBrown,
+  // tuneProwler,
+  // tuneIpanema,
+  // tuneJZBumble
 };
+
+const int tuneListSize PROGMEM = ARRAY_SIZE(tuneList);
 
 // These don't play as they need more than 16 tracks but will run if MIDIFile.h is changed
 //#define MIDI_FILE  "SYMPH9.MID"		// 29 tracks
@@ -95,8 +119,8 @@ char *tuneList[] =
 SdFat	SD;
 MD_MIDIFile SMF;
 
-const uint8_t pentatonic[NUM_NOTES] = {21, 24, 26, 28, 31, 33, 36, 38, 40, 43, 45, 48, 50, 52, 55, 57, 60, 62, 64, 67, 69, 72, 74, 76, 79, 81, 84, 86, 88, 91, 93, 96, 98, 100, 103, 105, 108};  
-unsigned long servoarr[NUM_NOTES] = {0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0};  
+const uint8_t pentatonic[NUM_NOTES] PROGMEM = {21, 24, 26, 28, 31, 33, 36, 38, 40, 43, 45, 48, 50, 52, 55, 57, 60, 62, 64, 67, 69, 72, 74, 76, 79, 81, 84, 86, 88, 91, 93, 96, 98, 100, 103, 105, 108};
+unsigned long servoarr[NUM_NOTES] = {0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0};
 
 
 void midiCallback(midi_event *pev)
@@ -129,22 +153,21 @@ void midiCallback(midi_event *pev)
 
   if (pev->data[0] == 144)
   {
-for (int i=0; i < NUM_NOTES; i++) {
-        if (pev->data[1] == pentatonic[i])
-        {
-          unsigned long time = millis();
-          servoarr[i] = time;
-          Serial.println(servoarr[i]);
-          
-          if (i <= 16){
+    for (int i=0; i < NUM_NOTES; i++) {
+      if (pev->data[1] == pentatonic[i])
+      {
+        unsigned long time = millis();
+        servoarr[i] = time;
+        Serial.println(servoarr[i]);
+        
+        if (i <= 16) {
           pwm1.setPWM(i, 0, 200);
 
-          }
+        }
 
-          if (i  >= 17) {
+        if (i  >= 17) {
           pwm2.setPWM(i - 16, 0, 200);
-          
-          }
+        }
 
 
          // pwm1.setPWM(servo, 0, 200);
@@ -231,7 +254,7 @@ void setup(void)
   {
     DEBUG("\nSD init fail!");
     digitalWrite(SD_ERROR_LED, HIGH);
-    while (true) ;
+    while (true);
   }
 
   // Initialize MIDIFile
@@ -246,8 +269,8 @@ void tickMetronome(void)
 // flash a LED to the beat
 {
   static uint32_t	lastBeatTime = 0;
-  static boolean	inBeat = false;
-  uint16_t	beatTime;
+  static boolean inBeat = false;
+  uint16_t beatTime;
 
   beatTime = 60000/SMF.getTempo();		// msec/beat = ((60sec/min)*(1000 ms/sec))/(beats/min)
   if (!inBeat)
@@ -271,9 +294,9 @@ void tickMetronome(void)
 
 void loop(void)
 {
-    int  err;
+  int err;
   
-  for (uint8_t i=0; i<ARRAY_SIZE(tuneList); i++)
+  for (uint8_t i=0; i<tuneListSize; i++)
   {
     // reset LEDs
     digitalWrite(READY_LED, LOW);
@@ -286,50 +309,47 @@ void loop(void)
     err = SMF.load();
     if (err != -1)
     {
-    DEBUG("\nSMF load Error ");
-    DEBUG(err);
-    digitalWrite(SMF_ERROR_LED, HIGH);
-    delay(WAIT_DELAY);
+      DEBUG("\nSMF load Error ");
+      DEBUG(err);
+      digitalWrite(SMF_ERROR_LED, HIGH);
+      delay(WAIT_DELAY);
     }
     else
     {
-    // play the file
-    while (!SMF.isEOF())
-    {
-      
-      if (SMF.getNextEvent(u))
-      tickMetronome();
-      for (int i=0; i < NUM_NOTES; i++){
-        unsigned long time = millis();
-      if (servoarr[i] && time - servoarr[i] > 500){
-          if (i <= 16){
-            Serial.println(time);
-            Serial.print("servo1");
-            pwm1.setPWM(i, 0, 125);
-            Serial.println("reset");
-            servoarr[i] = 0;
+      // play the file
+      while (!SMF.isEOF())
+      {
+        if (SMF.getNextEvent())
+          tickMetronome();
+        for (int i=0; i < NUM_NOTES; i++) {
+          unsigned long time = millis();
+          if (servoarr[i] && time - servoarr[i] > 500) {
+            if (i <= 16) {
+              Serial.println(time);
+              Serial.print("servo1");
+              pwm1.setPWM(i, 0, 125);
+              Serial.println("reset");
+              servoarr[i] = 0;
+            }
+
+            if (i >=17) {
+              Serial.println(time);
+              Serial.print("servo2");
+              pwm2.setPWM(i - 16, 0, 125);
+              Serial.println("reset");
+              servoarr[i] = 0;
+            }
           }
-
-          if(i >=17){
-            Serial.println(time);
-            Serial.print("servo2");
-            pwm2.setPWM(i - 16, 0, 125);
-            Serial.println("reset");
-            servoarr[i] = 0;
-
-           
+        }
       }
-          }
-  }
-    }
 
-    // done with this one
-    SMF.close();
-    midiSilence();
+      // done with this one
+      SMF.close();
+      midiSilence();
 
-    // signal finish LED with a dignified pause
-    digitalWrite(READY_LED, HIGH);
-    delay(WAIT_DELAY);
+      // signal finish LED with a dignified pause
+      digitalWrite(READY_LED, HIGH);
+      delay(WAIT_DELAY);
     }
   }
 }
