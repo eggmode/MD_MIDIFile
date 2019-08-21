@@ -200,49 +200,36 @@ void midiCallback(midi_event *pev)
   else if (pev->data[0] == 128)
   {
     unsigned long time = millis();
-    for (int i = 0; i < NUM_NOTES; i++) {
-      if (pev->data[1] == GET_PENTATONIC(i))
-      {
-        if (servoStates[i].isOn) {
-          servoStates[i].moveTime = time + SERVO_RECOVERY_DELAY;
-          DEBUG(i);
-          DEBUG(F(" off at "));
-          DEBUGLN(time + SERVO_RECOVERY_DELAY);
-        }
-        break;
-      }
+    int i = 0;
+
+    while (i < NUM_NOTES && pev->data[1] < GET_PENTATONIC(i)) {
+      i++;
+    }
+    if (servoStates[i].isOn) {
+      servoStates[i].moveTime = time + SERVO_RECOVERY_DELAY;
+      DEBUG(i);
+      DEBUG(F(" off at "));
+      DEBUGLN(time + SERVO_RECOVERY_DELAY);
     }
   }
   else if (pev->data[0] == 144)
   {
     unsigned long time = millis();
-    for (int i = 0; i < NUM_NOTES; i++) {
-      if (pev->data[1] == GET_PENTATONIC(i))
-      {
-        ServoState& servoState = servoStates[i];
+    int i = 0;
 
-        // If the servo is already switched on, turn it off right away so it has time to recover
-        if (servoState.isOn) {
-          DEBUGLN(time);
-          turnNoteOff(i);
-        }
-        servoState.moveTime = time + SERVO_RECOVERY_DELAY;
-        DEBUG(i);
-        DEBUG(F(" on at "));
-        DEBUGLN(time + SERVO_RECOVERY_DELAY);
-        break;
-         // pwm1.setPWM(servo, 0, 200);
-//         DEBUG("servo number ");
-//         DEBUG(i);
-//         DEBUG("\n");
-//    DEBUGLN(pev->data[0]);
-//    DEBUGLN(pev->data[1]);
-//    DEBUGLN(pev->data[2]);
-//    DEBUGLN(pev->data[3]);
-//    DEBUGLN(pev->data[4]);
-//    DEBUG("\n");
-      }
+    while (i < NUM_NOTES && pev->data[1] < GET_PENTATONIC(i)) {
+      i++;
     }
+
+    // If the servo is already switched on, turn it off right away so it has time to recover
+    if (servoStates[i].isOn) {
+      DEBUGLN(time);
+      turnNoteOff(i);
+    }
+    servoStates[i].moveTime = time + SERVO_RECOVERY_DELAY;
+    DEBUG(i);
+    DEBUG(F(" on at "));
+    DEBUGLN(time + SERVO_RECOVERY_DELAY);
   }
 }
 
