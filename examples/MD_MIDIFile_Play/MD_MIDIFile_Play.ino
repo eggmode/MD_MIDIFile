@@ -343,6 +343,37 @@ void tickMetronome(void)
   }
 }
 
+void applyServoStates() {
+  unsigned long time = millis();
+
+  for (int i = 0; i < NUM_NOTES; i++) {
+    ServoState& servoState = servoStates[i];
+
+    if (servoState.moveTime > 0 && time >= servoState.moveTime) {
+      if (!servoState.isOn) {
+        DEBUGLN(time);
+        DEBUG(F("servo "));
+        DEBUG(i);
+        DEBUGLN(F(" on"));
+
+        if (i <= 16) {
+          pwm1.setPWM(i, 0, 200);
+        }
+        else {
+          pwm2.setPWM(i - 16, 0, 200);
+        }
+
+        servoState.moveTime = 0;
+        servoState.isOn = true;
+      }
+      else {
+        DEBUGLN(time);
+        turnNoteOff(i);
+      }
+    }
+  }
+}
+
 void loop(void)
 {
   int err;
@@ -374,39 +405,19 @@ void loop(void)
           tickMetronome();
         }
 
-        unsigned long time = millis();
-
-        for (int i = 0; i < NUM_NOTES; i++) {
-          ServoState& servoState = servoStates[i];
-
-          if (servoState.moveTime > 0 && time >= servoState.moveTime) {
-            if (!servoState.isOn) {
-              DEBUGLN(time);
-              DEBUG(F("servo "));
-              DEBUG(i);
-              DEBUGLN(F(" on"));
-
-              if (i <= 16) {
-                pwm1.setPWM(i, 0, 200);
-              }
-              else {
-                pwm2.setPWM(i - 16, 0, 200);
-              }
-
-              servoState.moveTime = 0;
-              servoState.isOn = true;
-            }
-            else {
-              DEBUGLN(time);
-              turnNoteOff(i);
-            }
-          }
-        }
+        applyServoStates();
       }
 
       // done with this one
       SMF.close();
       midiSilence();
+
+      unsigned long songEndTime = millis();
+
+      // Everything is delayed, make sure we finish all the notes
+      while (millis() - SERVO_RECOVERY_DELAY <= songEndTime) {
+        applyServoStates();
+      }
 
       // signal finish LED with a dignified pause
       digitalWrite(READY_LED, HIGH);
