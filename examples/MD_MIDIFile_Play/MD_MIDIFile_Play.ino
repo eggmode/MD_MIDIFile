@@ -113,7 +113,7 @@ const char *const tuneList[] PROGMEM =
   // tuneJZBumble
 };
 
-const int tuneListSize PROGMEM = ARRAY_SIZE(tuneList);
+const int tuneListSize = ARRAY_SIZE(tuneList);
 
 // These don't play as they need more than 16 tracks but will run if MIDIFile.h is changed
 //#define MIDI_FILE  "SYMPH9.MID"		// 29 tracks
@@ -124,9 +124,19 @@ SdFat	SD;
 MD_MIDIFile SMF;
 
 const uint8_t pentatonic[NUM_NOTES] PROGMEM = {21, 24, 26, 28, 31, 33, 36, 38, 40, 43, 45, 48, 50, 52, 55, 57, 60, 62, 64, 67, 69, 72, 74, 76, 79, 81, 84, 86, 88, 91, 93, 96, 98, 100, 103, 105, 108};
+
+#define GET_PENTATONIC(i) ((const uint8_t) pgm_read_byte(&(pentatonic[i])))
+
 unsigned long servoOnTime[NUM_NOTES] = {0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0};
 unsigned long servoOffTime[NUM_NOTES] = {0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0};
 
+const char* getTune(const int i) {
+  // WARNING: this assumes all filenames will be 12 characters or less (FAT16)
+  static char tune[13];
+
+  strncpy_P(tune, (const char *) pgm_read_word(&(tuneList[i])), 13);
+  return tune;
+}
 
 void midiCallback(midi_event *pev)
 // Called by the MIDIFile library when a file event needs to be processed
@@ -160,7 +170,7 @@ void midiCallback(midi_event *pev)
   {
     unsigned long time = millis();
     for (int i = 0; i < NUM_NOTES; i++) {
-      if (pev->data[1] == pentatonic[i])
+      if (pev->data[1] == GET_PENTATONIC(i))
       {
         servoOffTime[i] = time + SERVO_RECOVERY_DELAY;
         DEBUG(i);
@@ -174,7 +184,7 @@ void midiCallback(midi_event *pev)
   {
     unsigned long time = millis();
     for (int i = 0; i < NUM_NOTES; i++) {
-      if (pev->data[1] == pentatonic[i])
+      if (pev->data[1] == GET_PENTATONIC(i))
       {
         unsigned long curServoOnTime = servoOnTime[i];
         unsigned long curServoOffTime = servoOffTime[i];
@@ -325,8 +335,8 @@ void loop(void)
 
     // use the next file name and play it
     DEBUG(F("\nFile: "));
-    DEBUG(tuneList[i]);
-    SMF.setFilename(tuneList[i]);
+    DEBUG(getTune(i));
+    SMF.setFilename(getTune(i));
     err = SMF.load();
     if (err != -1)
     {
