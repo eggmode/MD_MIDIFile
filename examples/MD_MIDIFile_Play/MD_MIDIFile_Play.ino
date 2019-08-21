@@ -111,7 +111,7 @@ const char *const tuneList[] PROGMEM =
 
 const int tuneListSize = ARRAY_SIZE(tuneList);
 
-#define GET_TUNE(i) ((char *) pgm_read_word(&tuneList[i]))
+#define GET_TUNE(i) ((const char *) pgm_read_word(&(tuneList[i])))
 
 // These don't play as they need more than 16 tracks but will run if MIDIFile.h is changed
 //#define MIDI_FILE  "SYMPH9.MID"		// 29 tracks
@@ -123,7 +123,7 @@ MD_MIDIFile SMF;
 
 const uint8_t pentatonic[NUM_NOTES] PROGMEM = {21, 24, 26, 28, 31, 33, 36, 38, 40, 43, 45, 48, 50, 52, 55, 57, 60, 62, 64, 67, 69, 72, 74, 76, 79, 81, 84, 86, 88, 91, 93, 96, 98, 100, 103, 105, 108};
 
-#define GET_PENTATONIC(i) ((uint8_t) pgm_read_byte(&pentatonic[i]))
+#define GET_PENTATONIC(i) ((const uint8_t) pgm_read_byte(&(pentatonic[i])))
 
 unsigned long servoarr[NUM_NOTES] = {0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0};
 
